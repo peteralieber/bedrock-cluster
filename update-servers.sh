@@ -1,47 +1,61 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
-TEMPLATE="bedrock-template"
-SERVERS_FILE="servers.txt"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+SERVERS_FILE="${BEDROCK_SERVERS_FILE:-$SCRIPT_DIR/servers.txt}"
+UPDATER="$SCRIPT_DIR/update-server.sh"
+DRY_RUN=0
+VERIFY=0
 
-if [ ! -f "$SERVERS_FILE" ]; then
-  echo "Servers file $SERVERS_FILE not found!"
+usage() {
+  echo "Usage: ./update-servers.sh [--dry-run] [--verify]"
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --dry-run)
+      DRY_RUN=1
+      shift
+      ;;
+    --verify)
+      VERIFY=1
+      shift
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1"
+      usage
+      exit 1
+      ;;
+  esac
+done
+
+if [[ ! -f "$SERVERS_FILE" ]]; then
+  echo "Servers file not found: $SERVERS_FILE"
   exit 1
 fi
 
-# Stop all servers
-while read -r line; do
-  NAME=$(echo "$line" | awk '{print $1}')
-  echo "Stopping $NAME..."
-  lxc-stop -n "$NAME" || true
-  sleep 2
+if [[ ! -x "$UPDATER" ]]; then
+  echo "Updater not executable: $UPDATER"
+  exit 1
+fi
 
+ARGS=()
+[[ "$DRY_RUN" == "1" ]] && ARGS+=("--dry-run")
+[[ "$VERIFY" == "1" ]] && ARGS+=("--verify")
+
+echo "Starting batch update using $SERVERS_FILE"
+
+while read -r line; do
+  [[ -z "$line" || "$line" =~ ^# ]] && continue
+  NAME="$(echo "$line" | awk '{print $1}')"
+  [[ -z "$NAME" ]] && continue
+
+  echo "---- Updating $NAME ----"
+  "$UPDATER" "${ARGS[@]}" "$NAME"
 done < "$SERVERS_FILE"
 
-# Copy updated files from template to each server, excluding config files
-CONFIG_FILES=("server.properties" "whitelist.json" "permissions.json" "valid_known_packs.json" "worlds")
-
-for line in $(cat "$SERVERS_FILE"); do
-  NAME=$(echo "$line" | awk '{print $1}')
-  echo "Updating files in $NAME..."
-
-  # Rsync from template to server rootfs /opt/bedrock excluding config files and worlds directory
-  rsync -av --delete 
-    --exclude=${CONFIG_FILES[0]} 
-    --exclude=${CONFIG_FILES[1]} 
-    --exclude=${CONFIG_FILES[2]} 
-    --exclude=${CONFIG_FILES[3]} 
-    --exclude=${CONFIG_FILES[4]} 
-    /var/lib/lxc/$TEMPLATE/rootfs/opt/bedrock/ /var/lib/lxc/$NAME/rootfs/opt/bedrock/
-
-done
-
-# Restart all servers
-while read -r line; do
-  NAME=$(echo "$line" | awk '{print $1}')
-  echo "Starting $NAME..."
-  lxc-start -n "$NAME"
-  sleep 3
-done < "$SERVERS_FILE"
-
-echo "All servers updated and restarted."
+echo "Batch update complete"

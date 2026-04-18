@@ -116,6 +116,7 @@ def find_instance_by_name(base_url: str, api_key: str, daemon_id: str, name: str
 def build_instance_config(name: str, repo_dir: Path, profile_arg: str | None) -> Dict[str, Any]:
     create_script = repo_dir / "create-server.sh"
     destroy_script = repo_dir / "destroy-server.sh"
+    update_script = repo_dir / "update-server.sh"
 
     if profile_arg:
         start_command = f"{create_script} -p {profile_arg} {name}"
@@ -132,7 +133,7 @@ def build_instance_config(name: str, repo_dir: Path, profile_arg: str | None) ->
         "type": "universal",
         "tag": ["bedrock-cluster"],
         "processType": "",
-        "updateCommand": "",
+        "updateCommand": f"{update_script} --verify {name}",
         "actionCommandList": [],
         "crlf": 0,
         "docker": {},

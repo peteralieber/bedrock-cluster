@@ -27,6 +27,14 @@ mkdir -p "$MOCK_BIN" "$TEST_LXC_ROOT"
 cp "$REPO_DIR/pool.txt" "$TEST_POOL"
 : > "$TEST_SERVERS"
 
+mkdir -p "$TEST_LXC_ROOT/bedrock-template/rootfs/opt/bedrock"
+cat > "$TEST_LXC_ROOT/bedrock-template/rootfs/opt/bedrock/bedrock_server" <<'EOM'
+#!/bin/bash
+exit 0
+EOM
+chmod +x "$TEST_LXC_ROOT/bedrock-template/rootfs/opt/bedrock/bedrock_server"
+echo "template-version=1" > "$TEST_LXC_ROOT/bedrock-template/rootfs/opt/bedrock/version.txt"
+
 REAL_SERVERS_SNAPSHOT="$WORK_DIR/servers.real.snapshot"
 cp "$REPO_DIR/servers.txt" "$REAL_SERVERS_SNAPSHOT"
 
@@ -162,6 +170,22 @@ if ! grep -q '^allow-cheats=true$' "$TARGET_PROPS"; then
   echo "FAIL: profile was not applied in sandbox server.properties"
   exit 1
 fi
+
+echo "Running isolated update-server dry-run test..."
+PATH="$MOCK_BIN:$PATH" \
+BEDROCK_LXC_ROOT="$TEST_LXC_ROOT" \
+"$REPO_DIR/update-server.sh" --dry-run --verify "$TARGET_SERVER"
+
+echo "Running isolated update-server apply test..."
+PATH="$MOCK_BIN:$PATH" \
+BEDROCK_LXC_ROOT="$TEST_LXC_ROOT" \
+"$REPO_DIR/update-server.sh" --verify "$TARGET_SERVER"
+
+echo "Running isolated update-servers batch dry-run test..."
+PATH="$MOCK_BIN:$PATH" \
+BEDROCK_SERVERS_FILE="$TEST_SERVERS" \
+BEDROCK_LXC_ROOT="$TEST_LXC_ROOT" \
+"$REPO_DIR/update-servers.sh" --dry-run --verify
 
 if ! cmp -s "$REAL_SERVERS_SNAPSHOT" "$REPO_DIR/servers.txt"; then
   echo "FAIL: production servers.txt was modified"
