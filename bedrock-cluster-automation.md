@@ -81,7 +81,6 @@ This repo is built around the idea that MCS does not manage the Bedrock process 
 - It then attaches tmux pane output to stdout so MCS can collect logs from the wrapper process.
 - MCS stops a server by launching `destroy-server.sh <name>`.
 
-There is also a helper script, `mcsm-register.sh`, that posts an instance definition to an MCS API endpoint. However, that helper currently reflects an older control model and does **not** match the current behavior of `create-server.sh` and `destroy-server.sh` exactly. Details are documented in the script reference below.
 There is also a helper script, `mcs_register.py`, that upserts an instance definition through the MCS API using this repository's wrapper-based runtime model.
 
 ## Files and State
