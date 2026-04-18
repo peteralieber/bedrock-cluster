@@ -82,7 +82,6 @@ For new feature work, follow this sequence:
 - No destructive cleanup is introduced by default in stop/destroy flow.
 
 ## Known Gaps
-- MCS custom Bedrock settings UI (text boxes/selectors) is not implemented yet.
 - `.mcworld` ingestion flow is planned but not implemented yet.
 
 ## Maintenance Note

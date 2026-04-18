@@ -367,10 +367,18 @@ Python helper that upserts a wrapper-based MCS process instance.
 
 - Reads MCS connection values from env or flags via `mcs_register.py`.
 - Upserts an MCS `process` instance using wrapper commands.
+- Populates MCS action commands for key Bedrock settings (gamemode, difficulty, allow-cheats, allow-list).
+- Refreshes per-server UI field schema JSON at `properties.d/<name>.ui.schema.json`.
 - Uses:
 	- `startCommand: /home/peter/minecraft/bedrock-cluster/create-server.sh ...`
 	- `stopCommand: /home/peter/minecraft/bedrock-cluster/destroy-server.sh ...`
 	- `cwd: /home/peter/minecraft/bedrock-cluster`
+
+### Bedrock Settings UI Assets
+
+- `mcs_bedrock_actions.py`: source of truth for selectable Bedrock settings fields and generated MCS action commands.
+- `mcs_bedrock_settings_card.html`: starter custom HTML card for text boxes/selectors that generate update commands.
+- `properties.d/<name>.ui.schema.json`: per-server schema file emitted by registration for UI consumers.
 
 **Side Effects**
 
@@ -538,7 +546,7 @@ That keeps MCS aligned with the actual runtime contract implemented by this repo
 - `create-server.sh` chooses a free IP by ping failure, which can produce false positives in some networks.
 - `create-server.sh` hard-codes host networking details: `ens7`, `/16`, and gateway `192.168.0.1`.
 - `list-servers.sh` and `update-servers.sh` assume they are run from the repo root.
-- A custom MCS Bedrock settings card (form UI) is not implemented yet.
+- `.mcworld` ingestion flow is planned but not implemented yet.
 
 ## Safe Testing Without Touching Live Servers
 
