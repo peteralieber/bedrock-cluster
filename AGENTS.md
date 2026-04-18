@@ -36,8 +36,10 @@ Agent rule:
 - `destroy-server.sh`: graceful stop, non-destructive container shutdown.
 - `expand_pool.py`: expands wildcard/range pool entries into concrete IPs.
 - `apply_server_properties.py`: validates and applies partial `server.properties` profiles.
+- `import_mcworld.py`: validates and imports `.mcworld` archives into container Bedrock world paths.
 - `mcs_register.py`: upserts MCS instance config to wrapper-based commands.
-- `update-servers.sh`: intended template-to-server sync flow (currently likely broken; repair before relying on it).
+- `update-server.sh`: per-server template sync with dry-run and verify modes.
+- `update-servers.sh`: batch wrapper over `update-server.sh` for all tracked servers.
 
 ## Implementation Policy (Python vs Bash)
 Use Bash when work is primarily:
@@ -82,7 +84,7 @@ For new feature work, follow this sequence:
 - No destructive cleanup is introduced by default in stop/destroy flow.
 
 ## Known Gaps
-- `.mcworld` ingestion flow is planned but not implemented yet.
+- None currently tracked.
 
 ## Maintenance Note
 If project direction changes (for example, moving more lifecycle orchestration into Python), update this file first so future coding agents stay aligned.

@@ -172,13 +172,14 @@ Provision a new Bedrock LXC server from the template or resume an existing one, 
 **Usage**
 
 ```bash
-./create-server.sh [-v] [-p /path/to/profile.server.properties] <name>
+./create-server.sh [-v] [-p /path/to/profile.server.properties] [-w /path/to/world.mcworld] <name>
 ```
 
 **Parameters**
 
 - `-v`: Enable verbose debug logging.
 - `-p`: Optional path to a partial Bedrock `server.properties` profile.
+- `-w`: Optional path to a `.mcworld` archive to import into the server.
 - `<name>`: Logical server/container name.
 
 **Behavior**
@@ -189,6 +190,7 @@ Provision a new Bedrock LXC server from the template or resume an existing one, 
 	- Ensures the container exists.
 	- Starts it if stopped.
 	- Applies partial `server.properties` profile if present.
+	- Imports `.mcworld` archive if `-w` is provided.
 	- Ensures the Bedrock tmux session `mc` is running.
 	- Pipes tmux output to stdout.
 	- Blocks forever with `tail -f /dev/null` so the wrapper process remains alive.
@@ -200,6 +202,7 @@ Provision a new Bedrock LXC server from the template or resume an existing one, 
 	- Appends LXC networking config using `macvlan` on interface `ens7`.
 	- Starts the container.
 	- Applies partial `server.properties` profile if present.
+	- Imports `.mcworld` archive if `-w` is provided.
 	- Starts Bedrock in tmux session `mc`.
 	- Appends the server record to `servers.txt`.
 	- Pipes tmux output to stdout and then blocks indefinitely.
@@ -211,6 +214,7 @@ Provision a new Bedrock LXC server from the template or resume an existing one, 
 - Appends network config to `/var/lib/lxc/<name>/config`.
 - Starts the LXC container.
 - Starts a Bedrock process inside the container.
+- Imports world data under `/var/lib/lxc/<name>/rootfs/opt/bedrock/worlds` when `-w` is provided.
 - Appends `<name> <ip>` to `servers.txt` on first provision.
 - Holds an active foreground process open for MCS log collection.
 
@@ -227,6 +231,7 @@ Provision a new Bedrock LXC server from the template or resume an existing one, 
 - `pool.txt` contains at least one reachable-free IP candidate.
 - The host network uses interface `ens7` and gateway `192.168.0.1`.
 - `ping` reachability is a valid enough free-IP heuristic for your network.
+- `.mcworld` archive contains one world folder with `level.dat`.
 
 **Important Notes**
 
@@ -546,7 +551,6 @@ That keeps MCS aligned with the actual runtime contract implemented by this repo
 - `create-server.sh` chooses a free IP by ping failure, which can produce false positives in some networks.
 - `create-server.sh` hard-codes host networking details: `ens7`, `/16`, and gateway `192.168.0.1`.
 - `list-servers.sh` and `update-servers.sh` assume they are run from the repo root.
-- `.mcworld` ingestion flow is planned but not implemented yet.
 
 ## Safe Testing Without Touching Live Servers
 
