@@ -339,12 +339,11 @@ Intended to stop all tracked containers, copy updated Bedrock files from the tem
 - Overwrites shared Bedrock binaries and content files from the template.
 - Preserves selected config and world data.
 
-**Important Caveat**
+**Important Notes**
 
-- As currently written, the script has shell-structure issues:
-	- The `for line in $(cat "$SERVERS_FILE")` loop splits on whitespace, not on lines.
-	- The multiline `rsync` command is not continued correctly and is unlikely to execute as intended.
-- Treat this script as a draft that documents the intended update strategy rather than a verified safe production command in its current form.
+- `update-servers.sh` now orchestrates per-server updates by calling `update-server.sh`.
+- Use `--dry-run` to preview changes before applying them.
+- Use `--verify` to assert that critical Bedrock binaries remain valid after sync.
 
 ### `mcs_register.py`
 
@@ -539,7 +538,6 @@ That keeps MCS aligned with the actual runtime contract implemented by this repo
 - `create-server.sh` chooses a free IP by ping failure, which can produce false positives in some networks.
 - `create-server.sh` hard-codes host networking details: `ens7`, `/16`, and gateway `192.168.0.1`.
 - `list-servers.sh` and `update-servers.sh` assume they are run from the repo root.
-- `update-servers.sh` currently appears unsafe to rely on without fixing its shell syntax and iteration logic.
 - A custom MCS Bedrock settings card (form UI) is not implemented yet.
 
 ## Safe Testing Without Touching Live Servers
@@ -563,7 +561,7 @@ What this harness does:
 If this automation is going to remain in service, the most useful follow-up changes would be:
 
 1. Rename `destroy-server.sh` or add a true destructive variant so lifecycle semantics are explicit.
-2. Fix `update-servers.sh` and test it against a non-production container set.
+2. Expand update verification (for example additional integrity checks and optional snapshot hooks).
 3. Move host-specific networking settings into a config file.
 4. Replace ping-based IP allocation with inventory-based or ARP-aware allocation.
 5. Extend `mcs_register.py` for additional registration metadata as needed.
