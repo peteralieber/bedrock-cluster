@@ -23,6 +23,7 @@ Core behavior:
 ## Source Of Truth Files
 - `servers.txt`: authoritative server inventory (`<name> <ip>`).
 - `pool.txt`: IP allocation candidates.
+- `properties.d/<name>.server.properties`: optional partial Bedrock settings profile per server.
 - `/var/lib/lxc/<name>/config`: effective container network config (host-side LXC state).
 
 Agent rule:
@@ -31,11 +32,12 @@ Agent rule:
 
 ## Current Script Responsibilities
 - `build-template.sh`: builds and seeds the template container.
-- `create-server.sh`: provision-or-resume wrapper, then log stream attachment.
+- `create-server.sh`: provision-or-resume wrapper, optional profile application, then log stream attachment.
 - `destroy-server.sh`: graceful stop, non-destructive container shutdown.
 - `expand_pool.py`: expands wildcard/range pool entries into concrete IPs.
+- `apply_server_properties.py`: validates and applies partial `server.properties` profiles.
+- `mcs_register.py`: upserts MCS instance config to wrapper-based commands.
 - `update-servers.sh`: intended template-to-server sync flow (currently likely broken; repair before relying on it).
-- `mcsm-register.sh`: older registration helper model; not aligned with wrapper-based lifecycle.
 
 ## Implementation Policy (Python vs Bash)
 Use Bash when work is primarily:
@@ -81,7 +83,8 @@ For new feature work, follow this sequence:
 
 ## Known Gaps
 - `update-servers.sh` likely needs repair before production use.
-- `mcsm-register.sh` should be modernized to wrapper-based commands if still used.
+- MCS custom Bedrock settings UI (text boxes/selectors) is not implemented yet.
+- `.mcworld` ingestion flow is planned but not implemented yet.
 
 ## Maintenance Note
 If project direction changes (for example, moving more lifecycle orchestration into Python), update this file first so future coding agents stay aligned.

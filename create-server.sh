@@ -2,14 +2,20 @@
 set -e
 
 VERBOSE=0
+PROFILE_FILE=""
+MCSM_NO_BLOCK="${MCSM_NO_BLOCK:-0}"
+LXC_ROOT="${BEDROCK_LXC_ROOT:-/var/lib/lxc}"
 
-while getopts ":v" opt; do
+while getopts ":vp:" opt; do
   case "$opt" in
     v)
       VERBOSE=1
       ;;
+    p)
+      PROFILE_FILE="$OPTARG"
+      ;;
     *)
-      echo "Usage: create.sh [-v] <name>"
+      echo "Usage: create.sh [-v] [-p profile.properties] <name>"
       exit 1
       ;;
   esac
@@ -19,7 +25,7 @@ shift $((OPTIND - 1))
 NAME="$1"
 
 if [ -z "$NAME" ]; then
-  echo "Usage: create.sh [-v] <name>"
+  echo "Usage: create.sh [-v] [-p profile.properties] <name>"
   exit 1
 fi
 
@@ -45,12 +51,49 @@ ensure_bedrock_running() {
   "
 }
 
+attach_and_hold_for_mcs() {
+  local container_name="$1"
+  if [ "$MCSM_NO_BLOCK" = "1" ]; then
+    vlog "MCSM_NO_BLOCK=1 set, skipping log pipe attach and hold loop"
+    return 0
+  fi
+
+  echo "[MCSM] Attaching to tmux session for log streaming..."
+  # This NEVER exits until the tmux session ends
+  lxc-attach -n "$container_name" -- tmux pipe-pane -t mc -o 'cat'
+  tail -f /dev/null
+}
+
+apply_profile_if_present() {
+  local container_name="$1"
+  local profile_path="$PROFILE_FILE"
+
+  if [ -z "$profile_path" ]; then
+    profile_path="$SCRIPT_DIR/properties.d/${container_name}.server.properties"
+  fi
+
+  if [ ! -f "$profile_path" ]; then
+    vlog "No properties profile found at: $profile_path"
+    return 0
+  fi
+
+  local target_path="$LXC_ROOT/$container_name/rootfs/opt/bedrock/server.properties"
+  if [ ! -f "$target_path" ]; then
+    echo "Expected Bedrock server.properties not found at: $target_path"
+    return 1
+  fi
+
+  vlog "Applying properties profile $profile_path to $target_path"
+  "$SCRIPT_DIR/apply_server_properties.py" --profile "$profile_path" --target "$target_path"
+}
+
 vlog "Requested server name: $NAME"
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
-SERVERS_FILE="$SCRIPT_DIR/servers.txt"
+SERVERS_FILE="${BEDROCK_SERVERS_FILE:-$SCRIPT_DIR/servers.txt}"
 vlog "Script directory resolved to: $SCRIPT_DIR"
 vlog "Using servers file: $SERVERS_FILE"
+vlog "Using LXC root: $LXC_ROOT"
 
 # Check if server already exists
 EXISTING_NAME=""
@@ -78,13 +121,12 @@ if [ -n "$EXISTING_NAME" ]; then
   fi
   lxc-info -n "$EXISTING_NAME" | grep -q 'RUNNING' || lxc-start -n "$EXISTING_NAME"
   sleep 3
+
+  apply_profile_if_present "$EXISTING_NAME"
   ensure_bedrock_running "$EXISTING_NAME"
   echo "Server $EXISTING_NAME is running at $EXISTING_IP:19132"
 
-  echo "[MCSM] Attaching to tmux session for log streaming..."
-  # This NEVER exits until the tmux session ends
-  lxc-attach -n "$NAME" -- tmux pipe-pane -t mc -o 'cat'
-  tail -f /dev/null
+  attach_and_hold_for_mcs "$NAME"
 fi
 
 vlog "No matching entry found in servers.txt for $NAME"
@@ -100,7 +142,7 @@ if lxc-info -n "$NAME" >/dev/null 2>&1; then
   echo "Stale container $NAME destroyed."
 fi
 
-POOL_FILE="$SCRIPT_DIR/pool.txt"
+POOL_FILE="${BEDROCK_POOL_FILE:-$SCRIPT_DIR/pool.txt}"
 TEMPLATE="bedrock-template"
 vlog "Using pool file: $POOL_FILE"
 vlog "Using template container: $TEMPLATE"
@@ -132,8 +174,8 @@ vlog "Copying template $TEMPLATE into new container $NAME"
 
 lxc-copy -n "$TEMPLATE" -N "$NAME"
 
-vlog "Appending network configuration to /var/lib/lxc/$NAME/config"
-cat <<EOF >> /var/lib/lxc/$NAME/config
+vlog "Appending network configuration to $LXC_ROOT/$NAME/config"
+cat <<EOF >> "$LXC_ROOT/$NAME/config"
 lxc.net.0.type = macvlan
 lxc.net.0.macvlan.mode = bridge
 lxc.net.0.link = ens7
@@ -147,15 +189,14 @@ lxc-start -n "$NAME"
 vlog "Waiting for container boot"
 sleep 3
 
+apply_profile_if_present "$NAME"
+
 vlog "Launching Bedrock server in tmux session inside container"
 ensure_bedrock_running "$NAME"
 
-vlog "Recording server mapping in $SCRIPT_DIR/servers.txt"
-echo "$NAME $FREE_IP" >> $SCRIPT_DIR/servers.txt
+vlog "Recording server mapping in $SERVERS_FILE"
+echo "$NAME $FREE_IP" >> "$SERVERS_FILE"
 vlog "Provisioning complete for $NAME"
 echo "Server $NAME running at $FREE_IP:19132"
 
-echo "[MCSM] Attaching to tmux session for log streaming..."
-# This NEVER exits until the tmux session ends
-lxc-attach -n "$NAME" -- tmux pipe-pane -t mc -o 'cat'
-tail -f /dev/null
+attach_and_hold_for_mcs "$NAME"

@@ -82,6 +82,7 @@ This repo is built around the idea that MCS does not manage the Bedrock process 
 - MCS stops a server by launching `destroy-server.sh <name>`.
 
 There is also a helper script, `mcsm-register.sh`, that posts an instance definition to an MCS API endpoint. However, that helper currently reflects an older control model and does **not** match the current behavior of `create-server.sh` and `destroy-server.sh` exactly. Details are documented in the script reference below.
+There is also a helper script, `mcs_register.py`, that upserts an instance definition through the MCS API using this repository's wrapper-based runtime model.
 
 ## Files and State
 
@@ -172,20 +173,23 @@ Provision a new Bedrock LXC server from the template or resume an existing one, 
 **Usage**
 
 ```bash
-./create-server.sh [-v] <name>
+./create-server.sh [-v] [-p /path/to/profile.server.properties] <name>
 ```
 
 **Parameters**
 
 - `-v`: Enable verbose debug logging.
+- `-p`: Optional path to a partial Bedrock `server.properties` profile.
 - `<name>`: Logical server/container name.
 
 **Behavior**
 
 - Resolves `servers.txt` and `pool.txt` relative to the script directory.
+- Resolves default profile path as `properties.d/<name>.server.properties` if `-p` is not provided.
 - If `<name>` already exists in `servers.txt`:
 	- Ensures the container exists.
 	- Starts it if stopped.
+	- Applies partial `server.properties` profile if present.
 	- Ensures the Bedrock tmux session `mc` is running.
 	- Pipes tmux output to stdout.
 	- Blocks forever with `tail -f /dev/null` so the wrapper process remains alive.
@@ -196,6 +200,7 @@ Provision a new Bedrock LXC server from the template or resume an existing one, 
 	- Clones `bedrock-template` to `<name>`.
 	- Appends LXC networking config using `macvlan` on interface `ens7`.
 	- Starts the container.
+	- Applies partial `server.properties` profile if present.
 	- Starts Bedrock in tmux session `mc`.
 	- Appends the server record to `servers.txt`.
 	- Pipes tmux output to stdout and then blocks indefinitely.
@@ -342,35 +347,32 @@ Intended to stop all tracked containers, copy updated Bedrock files from the tem
 	- The multiline `rsync` command is not continued correctly and is unlikely to execute as intended.
 - Treat this script as a draft that documents the intended update strategy rather than a verified safe production command in its current form.
 
-### `mcsm-register.sh`
+### `mcs_register.py`
 
 **Purpose**
 
-Helper script intended to register a server instance in MCS via HTTP API.
+Python helper that upserts a wrapper-based MCS process instance.
 
 **Usage**
 
 ```bash
-./mcsm-register.sh <name> <ip>
+./mcs_register.py --name <name> [--properties-file /path/to/profile.server.properties] [--property key=value ...]
 ```
 
 **Parameters**
 
-- `<name>`: Instance name to register in MCS.
-- `<ip>`: Accepted by the script but currently not used in the JSON payload.
+- `--name <name>`: Instance/server name to register in MCS.
+- `--properties-file`: Optional profile file path passed to the start wrapper.
+- `--property key=value`: Optional repeatable profile key/value updates.
 
 **Behavior**
 
-- Sends a `POST` request to `http://EPIC-BOSS/api/instance`.
-- Uses placeholder values for:
-	- `Authorization: YOUR_API_KEY`
-	- `daemonId: YOUR_DAEMON_ID`
-- Registers an MCS instance of type `process`.
+- Reads MCS connection values from env or flags via `mcs_register.py`.
+- Upserts an MCS `process` instance using wrapper commands.
 - Uses:
-	- `startCommand: lxc-start -n <name>`
-	- `stopCommand: lxc-stop -n <name>`
-	- `cwd: /`
-	- `logPath: /var/lib/lxc/<name>/rootfs/opt/bedrock/server.log`
+	- `startCommand: /home/peter/minecraft/bedrock-cluster/create-server.sh ...`
+	- `stopCommand: /home/peter/minecraft/bedrock-cluster/destroy-server.sh ...`
+	- `cwd: /home/peter/minecraft/bedrock-cluster`
 
 **Side Effects**
 
@@ -379,10 +381,8 @@ Helper script intended to register a server instance in MCS via HTTP API.
 
 **Important Caveats**
 
-- It contains placeholders and is not usable without editing.
-- It assumes MCS should call `lxc-start` and `lxc-stop` directly.
-- That differs from the current wrapper-based model, where `create-server.sh` and `destroy-server.sh` provide provisioning, graceful shutdown, and log streaming.
-- It points MCS at `server.log`, but the main runtime flow in this repo streams logs from tmux to stdout instead.
+- Requires MCS API credentials (`MCSM_PANEL_URL`, `MCSM_API_KEY`, `MCSM_DAEMON_ID`) unless supplied via flags.
+- Gameplay settings should be managed by partial `server.properties` profiles, not by changing LXC-level commands.
 
 **Recommended Positioning**
 
@@ -518,15 +518,15 @@ For a server named `MyWorld`:
 
 ### Using the API Registration Helper
 
-If you want to automate registration through `mcsm-register.sh`, update it first.
+If you want to automate registration through `mcs_register.py`, configure it first.
 
-At minimum, replace:
+At minimum, provide:
 
-- `YOUR_API_KEY`
-- `YOUR_DAEMON_ID`
-- `http://EPIC-BOSS/api/instance`
+- `MCSM_PANEL_URL`
+- `MCSM_API_KEY`
+- `MCSM_DAEMON_ID`
 
-You should also change the payload so MCS uses the wrapper scripts:
+`mcs_register.py` already writes wrapper-based process commands:
 
 - `startCommand` should call `create-server.sh <name>`
 - `stopCommand` should call `destroy-server.sh <name>`
@@ -541,7 +541,23 @@ That keeps MCS aligned with the actual runtime contract implemented by this repo
 - `create-server.sh` hard-codes host networking details: `ens7`, `/16`, and gateway `192.168.0.1`.
 - `list-servers.sh` and `update-servers.sh` assume they are run from the repo root.
 - `update-servers.sh` currently appears unsafe to rely on without fixing its shell syntax and iteration logic.
-- `mcsm-register.sh` is a partial helper, not a finished source of truth for MCS integration.
+- A custom MCS Bedrock settings card (form UI) is not implemented yet.
+
+## Safe Testing Without Touching Live Servers
+
+You can run the non-destructive harness below to test provisioning/profile logic without changing live `servers.txt` entries or writing under `/var/lib/lxc`.
+
+```bash
+cd /home/peter/minecraft/bedrock-cluster
+./safe-test.sh
+```
+
+What this harness does:
+
+- Uses sandbox copies for `servers.txt` and `pool.txt`.
+- Uses a sandbox LXC root directory under `.safe-test-sandbox/`.
+- Mocks `lxc-*` and `ping` calls so no real containers are created/stopped.
+- Verifies production `servers.txt` is unchanged after the run.
 
 ## Recommended Improvements
 
@@ -551,4 +567,4 @@ If this automation is going to remain in service, the most useful follow-up chan
 2. Fix `update-servers.sh` and test it against a non-production container set.
 3. Move host-specific networking settings into a config file.
 4. Replace ping-based IP allocation with inventory-based or ARP-aware allocation.
-5. Update `mcsm-register.sh` to register wrapper-script commands instead of raw LXC commands.
+5. Extend `mcs_register.py` for additional registration metadata as needed.
