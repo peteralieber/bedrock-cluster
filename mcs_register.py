@@ -17,6 +17,8 @@ import urllib.request
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+from mcs_bedrock_actions import build_action_commands, schema_for_custom_card
+
 REPO_DIR = Path(__file__).resolve().parent
 DEFAULT_PROPERTIES_DIR = REPO_DIR / "properties.d"
 
@@ -123,6 +125,8 @@ def build_instance_config(name: str, repo_dir: Path, profile_arg: str | None) ->
     else:
         start_command = f"{create_script} {name}"
 
+    actions = build_action_commands(name, repo_dir)
+
     return {
         "nickname": name,
         "startCommand": start_command,
@@ -131,10 +135,10 @@ def build_instance_config(name: str, repo_dir: Path, profile_arg: str | None) ->
         "ie": "utf-8",
         "oe": "utf-8",
         "type": "universal",
-        "tag": ["bedrock-cluster"],
+        "tag": ["bedrock-cluster", "bedrock-settings-ui-v1"],
         "processType": "",
         "updateCommand": f"{update_script} --verify {name}",
-        "actionCommandList": [],
+        "actionCommandList": actions,
         "crlf": 0,
         "docker": {},
         "terminalOption": {
@@ -183,6 +187,13 @@ def main() -> int:
             current.update(parse_key_values(args.property))
             write_properties(profile_path, current)
             print(f"Profile updated: {profile_path}")
+
+        schema_path = REPO_DIR / "properties.d" / f"{args.name}.ui.schema.json"
+        schema_path.write_text(
+            json.dumps(schema_for_custom_card(), indent=2) + "\n",
+            encoding="utf-8",
+        )
+        print(f"UI schema refreshed: {schema_path}")
 
         config = build_instance_config(args.name, REPO_DIR, profile_ref)
         existing_uuid = find_instance_by_name(args.panel_url, args.api_key, args.daemon_id, args.name)

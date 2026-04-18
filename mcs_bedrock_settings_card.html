@@ -1,0 +1,94 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Bedrock Settings Card</title>
+    <style>
+      body { font-family: sans-serif; margin: 10px; }
+      .row { margin: 8px 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      label { font-size: 13px; }
+      input, select { padding: 6px; width: 100%; box-sizing: border-box; }
+      button { margin-top: 12px; padding: 8px 12px; }
+      .help { font-size: 12px; color: #666; margin-top: 10px; }
+      .status { margin-top: 10px; font-size: 12px; }
+    </style>
+  </head>
+  <body>
+    <h3>Bedrock Settings</h3>
+    <div class="row"><label>Server Name</label><input id="server-name" /></div>
+    <div class="row"><label>Level Name</label><input id="level-name" /></div>
+    <div class="row"><label>Level Seed</label><input id="level-seed" /></div>
+    <div class="row">
+      <label>Gamemode</label>
+      <select id="gamemode">
+        <option value="survival">survival</option>
+        <option value="creative">creative</option>
+        <option value="adventure">adventure</option>
+      </select>
+    </div>
+    <div class="row">
+      <label>Difficulty</label>
+      <select id="difficulty">
+        <option value="peaceful">peaceful</option>
+        <option value="easy">easy</option>
+        <option value="normal">normal</option>
+        <option value="hard">hard</option>
+      </select>
+    </div>
+    <div class="row">
+      <label>Allow Cheats</label>
+      <select id="allow-cheats">
+        <option value="false">false</option>
+        <option value="true">true</option>
+      </select>
+    </div>
+    <div class="row">
+      <label>Allow List</label>
+      <select id="allow-list">
+        <option value="false">false</option>
+        <option value="true">true</option>
+      </select>
+    </div>
+    <div class="row"><label>Max Players</label><input id="max-players" type="number" min="1" max="200" /></div>
+
+    <button id="save">Generate CLI Command</button>
+    <div class="status" id="status"></div>
+    <div class="help">
+      This card generates a command that can be run in an MCS terminal action to apply settings:
+      <code>python3 /home/peter/minecraft/bedrock-cluster/mcs_register.py --name &lt;name&gt; --property key=value ...</code>
+    </div>
+
+    <script>
+      window.$onMounted = function () {
+        const status = document.querySelector("#status");
+        document.querySelector("#save").addEventListener("click", () => {
+          const fields = [
+            "server-name",
+            "level-name",
+            "level-seed",
+            "gamemode",
+            "difficulty",
+            "allow-cheats",
+            "allow-list",
+            "max-players"
+          ];
+
+          const serverName = prompt("Server instance name to update:");
+          if (!serverName) {
+            status.textContent = "Cancelled (no server name provided).";
+            return;
+          }
+
+          const props = [];
+          for (const key of fields) {
+            const value = document.querySelector(`#${key}`).value;
+            if (value !== "") props.push(`--property ${key}=${value}`);
+          }
+
+          const cmd = `python3 /home/peter/minecraft/bedrock-cluster/mcs_register.py --name ${serverName} ${props.join(" ")}`;
+          status.textContent = cmd;
+        });
+      };
+    </script>
+  </body>
+</html>
