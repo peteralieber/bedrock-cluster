@@ -152,6 +152,17 @@ allow-cheats=true
 max-players=20
 EOM
 
+python3 - <<'PY'
+from pathlib import Path
+import zipfile
+
+work_dir = Path("/home/peter/minecraft/bedrock-cluster/.safe-test-sandbox")
+world_file = work_dir / "sample.mcworld"
+with zipfile.ZipFile(world_file, "w") as zf:
+  zf.writestr("SampleWorld/level.dat", "test-level")
+  zf.writestr("SampleWorld/db/CURRENT", "")
+PY
+
 echo "Running isolated create-server test..."
 PATH="$MOCK_BIN:$PATH" \
 BEDROCK_SERVERS_FILE="$TEST_SERVERS" \
@@ -159,6 +170,14 @@ BEDROCK_POOL_FILE="$TEST_POOL" \
 BEDROCK_LXC_ROOT="$TEST_LXC_ROOT" \
 MCSM_NO_BLOCK=1 \
 "$REPO_DIR/create-server.sh" -p "$WORK_DIR/profile.server.properties" "$TARGET_SERVER"
+
+echo "Running isolated create-server with .mcworld import test..."
+PATH="$MOCK_BIN:$PATH" \
+BEDROCK_SERVERS_FILE="$TEST_SERVERS" \
+BEDROCK_POOL_FILE="$TEST_POOL" \
+BEDROCK_LXC_ROOT="$TEST_LXC_ROOT" \
+MCSM_NO_BLOCK=1 \
+"$REPO_DIR/create-server.sh" -w "$WORK_DIR/sample.mcworld" "$TARGET_SERVER"
 
 if ! grep -q "^${TARGET_SERVER} " "$TEST_SERVERS"; then
   echo "FAIL: sandbox servers file was not updated"
@@ -168,6 +187,16 @@ fi
 TARGET_PROPS="$TEST_LXC_ROOT/$TARGET_SERVER/rootfs/opt/bedrock/server.properties"
 if ! grep -q '^allow-cheats=true$' "$TARGET_PROPS"; then
   echo "FAIL: profile was not applied in sandbox server.properties"
+  exit 1
+fi
+
+if ! grep -q '^level-name=SampleWorld$' "$TARGET_PROPS"; then
+  echo "FAIL: imported world did not update level-name"
+  exit 1
+fi
+
+if [[ ! -f "$TEST_LXC_ROOT/$TARGET_SERVER/rootfs/opt/bedrock/worlds/SampleWorld/level.dat" ]]; then
+  echo "FAIL: imported world files were not copied to sandbox worlds directory"
   exit 1
 fi
 

@@ -3,10 +3,11 @@ set -e
 
 VERBOSE=0
 PROFILE_FILE=""
+WORLD_FILE=""
 MCSM_NO_BLOCK="${MCSM_NO_BLOCK:-0}"
 LXC_ROOT="${BEDROCK_LXC_ROOT:-/var/lib/lxc}"
 
-while getopts ":vp:" opt; do
+while getopts ":vp:w:" opt; do
   case "$opt" in
     v)
       VERBOSE=1
@@ -14,8 +15,11 @@ while getopts ":vp:" opt; do
     p)
       PROFILE_FILE="$OPTARG"
       ;;
+    w)
+      WORLD_FILE="$OPTARG"
+      ;;
     *)
-      echo "Usage: create.sh [-v] [-p profile.properties] <name>"
+      echo "Usage: create.sh [-v] [-p profile.properties] [-w world.mcworld] <name>"
       exit 1
       ;;
   esac
@@ -25,7 +29,7 @@ shift $((OPTIND - 1))
 NAME="$1"
 
 if [ -z "$NAME" ]; then
-  echo "Usage: create.sh [-v] [-p profile.properties] <name>"
+  echo "Usage: create.sh [-v] [-p profile.properties] [-w world.mcworld] <name>"
   exit 1
 fi
 
@@ -87,6 +91,21 @@ apply_profile_if_present() {
   "$SCRIPT_DIR/apply_server_properties.py" --profile "$profile_path" --target "$target_path"
 }
 
+import_world_if_requested() {
+  local container_name="$1"
+
+  if [ -z "$WORLD_FILE" ]; then
+    return 0
+  fi
+
+  local container_root="$LXC_ROOT/$container_name/rootfs"
+  vlog "Importing .mcworld archive $WORLD_FILE into $container_root"
+  "$SCRIPT_DIR/import_mcworld.py" \
+    --source "$WORLD_FILE" \
+    --container-root "$container_root" \
+    --server-name "$container_name"
+}
+
 vlog "Requested server name: $NAME"
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
@@ -123,10 +142,12 @@ if [ -n "$EXISTING_NAME" ]; then
   sleep 3
 
   apply_profile_if_present "$EXISTING_NAME"
+  import_world_if_requested "$EXISTING_NAME"
   ensure_bedrock_running "$EXISTING_NAME"
   echo "Server $EXISTING_NAME is running at $EXISTING_IP:19132"
 
   attach_and_hold_for_mcs "$NAME"
+  exit 0
 fi
 
 vlog "No matching entry found in servers.txt for $NAME"
@@ -190,6 +211,7 @@ vlog "Waiting for container boot"
 sleep 3
 
 apply_profile_if_present "$NAME"
+import_world_if_requested "$NAME"
 
 vlog "Launching Bedrock server in tmux session inside container"
 ensure_bedrock_running "$NAME"
