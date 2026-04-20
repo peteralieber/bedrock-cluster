@@ -1,0 +1,65 @@
+{
+  "nickname": "{{SERVER_NAME}}",
+  "startCommand": "/home/peter/minecraft/bedrock-cluster/create-server.sh {{SERVER_NAME}}",
+  "stopCommand": "/home/peter/minecraft/bedrock-cluster/destroy-server.sh {{SERVER_NAME}}",
+  "cwd": "/home/peter/minecraft/bedrock-cluster",
+  "ie": "utf-8",
+  "oe": "utf-8",
+  "type": "universal",
+  "tag": [
+    "bedrock-cluster",
+    "bedrock-settings-ui-v1"
+  ],
+  "processType": "",
+  "updateCommand": "/home/peter/minecraft/bedrock-cluster/update-server.sh --verify {{SERVER_NAME}}",
+  "actionCommandList": [
+    {
+      "name": "Terminate Server (Destroy Container)",
+      "command": "/home/peter/minecraft/bedrock-cluster/terminate-server.sh --force {{SERVER_NAME}}"
+    },
+    {
+      "name": "Set Gamemode: survival",
+      "command": "python3 /home/peter/minecraft/bedrock-cluster/mcs_register.py --name {{SERVER_NAME}} --property gamemode=survival"
+    },
+    {
+      "name": "Set Gamemode: creative",
+      "command": "python3 /home/peter/minecraft/bedrock-cluster/mcs_register.py --name {{SERVER_NAME}} --property gamemode=creative"
+    },
+    {
+      "name": "Set Gamemode: adventure",
+      "command": "python3 /home/peter/minecraft/bedrock-cluster/mcs_register.py --name {{SERVER_NAME}} --property gamemode=adventure"
+    },
+    {
+      "name": "Set Difficulty: peaceful",
+      "command": "python3 /home/peter/minecraft/bedrock-cluster/mcs_register.py --name {{SERVER_NAME}} --property difficulty=peaceful"
+    },
+    {
+      "name": "Set Difficulty: easy",
+      "command": "python3 /home/peter/minecraft/bedrock-cluster/mcs_register.py --name {{SERVER_NAME}} --property difficulty=easy"
+    },
+    {
+      "name": "Set Difficulty: normal",
+      "command": "python3 /home/peter/minecraft/bedrock-cluster/mcs_register.py --name {{SERVER_NAME}} --property difficulty=normal"
+    },
+    {
+      "name": "Set Difficulty: hard",
+      "command": "python3 /home/peter/minecraft/bedrock-cluster/mcs_register.py --name {{SERVER_NAME}} --property difficulty=hard"
+    }
+  ],
+  "crlf": 0,
+  "docker": {},
+  "terminalOption": {
+    "haveColor": true,
+    "pty": true
+  },
+  "eventTask": {
+    "autoStart": false,
+    "autoRestart": false,
+    "ignore": false
+  },
+  "pingConfig": {
+    "ip": "",
+    "port": 19132,
+    "type": 1
+  }
+}

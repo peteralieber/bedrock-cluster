@@ -666,6 +666,16 @@ At minimum, provide:
 
 That keeps MCS aligned with the actual runtime contract implemented by this repository.
 
+### Reusable MCS Template File
+
+The repository now includes `mcs_template_bedrock_process.json` as a reusable baseline instance template.
+
+How to use it:
+
+1. Copy the JSON into your MCS instance creation/import flow.
+2. Replace `{{SERVER_NAME}}` with the desired instance name.
+3. Optionally run `mcs_register.py --name <name>` afterward to refresh generated action commands and schema.
+
 ## Known Risks and Caveats
 
 - `destroy-server.sh` does not remove containers or inventory entries.
