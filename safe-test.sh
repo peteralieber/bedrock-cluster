@@ -216,6 +216,22 @@ BEDROCK_SERVERS_FILE="$TEST_SERVERS" \
 BEDROCK_LXC_ROOT="$TEST_LXC_ROOT" \
 "$REPO_DIR/update-servers.sh" --dry-run --verify
 
+echo "Running isolated terminate-server destructive test..."
+PATH="$MOCK_BIN:$PATH" \
+BEDROCK_SERVERS_FILE="$TEST_SERVERS" \
+BEDROCK_LXC_ROOT="$TEST_LXC_ROOT" \
+"$REPO_DIR/terminate-server.sh" --force "$TARGET_SERVER"
+
+if grep -q "^${TARGET_SERVER} " "$TEST_SERVERS"; then
+  echo "FAIL: terminate did not remove server mapping from sandbox servers.txt"
+  exit 1
+fi
+
+if [[ -d "$TEST_LXC_ROOT/$TARGET_SERVER" ]]; then
+  echo "FAIL: terminate did not remove sandbox container directory"
+  exit 1
+fi
+
 if ! cmp -s "$REAL_SERVERS_SNAPSHOT" "$REPO_DIR/servers.txt"; then
   echo "FAIL: production servers.txt was modified"
   exit 1

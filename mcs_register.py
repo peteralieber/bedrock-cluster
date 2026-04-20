@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shlex
 import sys
 import urllib.error
 import urllib.parse
@@ -118,26 +119,36 @@ def find_instance_by_name(base_url: str, api_key: str, daemon_id: str, name: str
 def build_instance_config(name: str, repo_dir: Path, profile_arg: str | None) -> Dict[str, Any]:
     create_script = repo_dir / "create-server.sh"
     destroy_script = repo_dir / "destroy-server.sh"
+    terminate_script = repo_dir / "terminate-server.sh"
     update_script = repo_dir / "update-server.sh"
+    quoted_name = shlex.quote(name)
 
     if profile_arg:
-        start_command = f"{create_script} -p {profile_arg} {name}"
+        start_command = (
+            f"{shlex.quote(str(create_script))} -p {shlex.quote(profile_arg)} {quoted_name}"
+        )
     else:
-        start_command = f"{create_script} {name}"
+        start_command = f"{shlex.quote(str(create_script))} {quoted_name}"
 
     actions = build_action_commands(name, repo_dir)
+    actions.append(
+        {
+            "name": "Terminate Server (Destroy Container)",
+            "command": f"{shlex.quote(str(terminate_script))} --force {quoted_name}",
+        }
+    )
 
     return {
         "nickname": name,
         "startCommand": start_command,
-        "stopCommand": f"{destroy_script} {name}",
+        "stopCommand": f"{shlex.quote(str(destroy_script))} {quoted_name}",
         "cwd": str(repo_dir),
         "ie": "utf-8",
         "oe": "utf-8",
         "type": "universal",
         "tag": ["bedrock-cluster", "bedrock-settings-ui-v1"],
         "processType": "",
-        "updateCommand": f"{update_script} --verify {name}",
+        "updateCommand": f"{shlex.quote(str(update_script))} --verify {quoted_name}",
         "actionCommandList": actions,
         "crlf": 0,
         "docker": {},

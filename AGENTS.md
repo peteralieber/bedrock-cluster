@@ -34,6 +34,7 @@ Agent rule:
 - `build-template.sh`: builds and seeds the template container.
 - `create-server.sh`: provision-or-resume wrapper, optional profile application, then log stream attachment.
 - `destroy-server.sh`: graceful stop, non-destructive container shutdown.
+- `terminate-server.sh`: destructive termination that removes container and inventory mapping.
 - `expand_pool.py`: expands wildcard/range pool entries into concrete IPs.
 - `apply_server_properties.py`: validates and applies partial `server.properties` profiles.
 - `import_mcworld.py`: validates and imports `.mcworld` archives into container Bedrock world paths.

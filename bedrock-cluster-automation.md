@@ -373,6 +373,7 @@ Python helper that upserts a wrapper-based MCS process instance.
 - Reads MCS connection values from env or flags via `mcs_register.py`.
 - Upserts an MCS `process` instance using wrapper commands.
 - Populates MCS action commands for key Bedrock settings (gamemode, difficulty, allow-cheats, allow-list).
+- Adds a destructive `Terminate Server (Destroy Container)` action command that calls `terminate-server.sh --force <name>`.
 - Refreshes per-server UI field schema JSON at `properties.d/<name>.ui.schema.json`.
 - Uses:
 	- `startCommand: /home/peter/minecraft/bedrock-cluster/create-server.sh ...`
@@ -507,6 +508,12 @@ For a server named `MyWorld`:
 - `create-server.sh` can recover an existing tracked server.
 - `destroy-server.sh` performs a cleaner stop than `lxc-stop` alone.
 - The start wrapper exposes the Bedrock console stream to stdout, which is friendlier to a process-oriented control panel.
+
+### Stop vs Terminate
+
+- `destroy-server.sh <name>` is non-destructive and should be used as the MCS stop command.
+- `terminate-server.sh --force <name>` is destructive and removes both the container and the `servers.txt` mapping.
+- The terminate flow returns the assigned IP to the pool by removing the inventory mapping.
 
 ### Manual MCS Setup Guide
 
