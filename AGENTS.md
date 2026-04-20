@@ -24,6 +24,7 @@ Core behavior:
 - `servers.txt`: authoritative server inventory (`<name> <ip>`).
 - `pool.txt`: IP allocation candidates.
 - `properties.d/<name>.server.properties`: optional partial Bedrock settings profile per server.
+- `bedrock.conf`: optional host-specific defaults (network interface/prefix/gateway, allocation strategy).
 - `/var/lib/lxc/<name>/config`: effective container network config (host-side LXC state).
 
 Agent rule:
@@ -36,6 +37,7 @@ Agent rule:
 - `destroy-server.sh`: graceful stop, non-destructive container shutdown.
 - `terminate-server.sh`: destructive termination that removes container and inventory mapping.
 - `expand_pool.py`: expands wildcard/range pool entries into concrete IPs.
+- `allocate_ip.py`: allocates free IPs from pool expansion using inventory-safe or ping-probe strategy.
 - `apply_server_properties.py`: validates and applies partial `server.properties` profiles.
 - `import_mcworld.py`: validates and imports `.mcworld` archives into container Bedrock world paths.
 - `mcs_register.py`: upserts MCS instance config to wrapper-based commands.

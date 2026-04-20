@@ -6,6 +6,10 @@ PROFILE_FILE=""
 WORLD_FILE=""
 MCSM_NO_BLOCK="${MCSM_NO_BLOCK:-0}"
 LXC_ROOT="${BEDROCK_LXC_ROOT:-/var/lib/lxc}"
+NET_INTERFACE=""
+NET_PREFIX=""
+NET_GATEWAY=""
+IP_ALLOCATION_METHOD=""
 
 while getopts ":vp:w:" opt; do
   case "$opt" in
@@ -119,10 +123,25 @@ sync_mcs_ping_if_configured() {
 vlog "Requested server name: $NAME"
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+CONFIG_FILE="${BEDROCK_CONFIG_FILE:-$SCRIPT_DIR/bedrock.conf}"
+if [ -f "$CONFIG_FILE" ]; then
+  # shellcheck disable=SC1090
+  source "$CONFIG_FILE"
+fi
+
+NET_INTERFACE="${BEDROCK_NET_INTERFACE:-${NET_INTERFACE:-ens7}}"
+NET_PREFIX="${BEDROCK_NET_PREFIX:-${NET_PREFIX:-16}}"
+NET_GATEWAY="${BEDROCK_NET_GATEWAY:-${NET_GATEWAY:-192.168.0.1}}"
+IP_ALLOCATION_METHOD="${BEDROCK_IP_ALLOCATION_METHOD:-${IP_ALLOCATION_METHOD:-inventory-safe}}"
+
 SERVERS_FILE="${BEDROCK_SERVERS_FILE:-$SCRIPT_DIR/servers.txt}"
 vlog "Script directory resolved to: $SCRIPT_DIR"
 vlog "Using servers file: $SERVERS_FILE"
 vlog "Using LXC root: $LXC_ROOT"
+vlog "Using network interface: $NET_INTERFACE"
+vlog "Using network prefix: $NET_PREFIX"
+vlog "Using network gateway: $NET_GATEWAY"
+vlog "Using IP allocation method: $IP_ALLOCATION_METHOD"
 
 # Check if server already exists
 EXISTING_NAME=""
@@ -179,21 +198,8 @@ TEMPLATE="bedrock-template"
 vlog "Using pool file: $POOL_FILE"
 vlog "Using template container: $TEMPLATE"
 
-# Expand pool using Python helper
-vlog "Expanding IP pool"
-IP_POOL=($($SCRIPT_DIR/expand_pool.py "$POOL_FILE"))
-vlog "Expanded IP pool size: ${#IP_POOL[@]}"
-
-FREE_IP=""
-vlog "Searching for a free IP by ping probe"
-for ip in "${IP_POOL[@]}"; do
-  vlog "Probing IP: $ip"
-  if ! ping -c1 -W1 "$ip" >/dev/null 2>&1; then
-    FREE_IP="$ip"
-    vlog "Selected free IP: $FREE_IP"
-    break
-  fi
-done
+FREE_IP="$($SCRIPT_DIR/allocate_ip.py --pool-file "$POOL_FILE" --servers-file "$SERVERS_FILE" --method "$IP_ALLOCATION_METHOD")"
+vlog "Selected free IP: $FREE_IP"
 
 if [ -z "$FREE_IP" ]; then
   vlog "No available free IP found after probing pool"
@@ -210,10 +216,10 @@ vlog "Appending network configuration to $LXC_ROOT/$NAME/config"
 cat <<EOF >> "$LXC_ROOT/$NAME/config"
 lxc.net.0.type = macvlan
 lxc.net.0.macvlan.mode = bridge
-lxc.net.0.link = ens7
+lxc.net.0.link = $NET_INTERFACE
 lxc.net.0.flags = up
-lxc.net.0.ipv4.address = $FREE_IP/16
-lxc.net.0.ipv4.gateway = 192.168.0.1
+lxc.net.0.ipv4.address = $FREE_IP/$NET_PREFIX
+lxc.net.0.ipv4.gateway = $NET_GATEWAY
 EOF
 
 vlog "Starting container $NAME"

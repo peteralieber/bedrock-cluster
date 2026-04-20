@@ -185,6 +185,9 @@ Provision a new Bedrock LXC server from the template or resume an existing one, 
 **Behavior**
 
 - Resolves `servers.txt` and `pool.txt` relative to the script directory.
+- Loads optional host defaults from `bedrock.conf` (or `BEDROCK_CONFIG_FILE`).
+- Supports configurable network values (`BEDROCK_NET_INTERFACE`, `BEDROCK_NET_PREFIX`, `BEDROCK_NET_GATEWAY`).
+- Uses `allocate_ip.py` with strategy `BEDROCK_IP_ALLOCATION_METHOD` (`inventory-safe` default).
 - Resolves default profile path as `properties.d/<name>.server.properties` if `-p` is not provided.
 - If `<name>` already exists in `servers.txt`:
 	- Ensures the container exists.
@@ -196,10 +199,9 @@ Provision a new Bedrock LXC server from the template or resume an existing one, 
 	- Blocks forever with `tail -f /dev/null` so the wrapper process remains alive.
 - If `<name>` does not exist in `servers.txt`:
 	- Destroys any stale LXC container of the same name that is not tracked.
-	- Expands candidate IPs from `pool.txt`.
-	- Selects the first IP that does not answer `ping`.
+	- Expands candidate IPs from `pool.txt` and picks the first inventory-free address.
 	- Clones `bedrock-template` to `<name>`.
-	- Appends LXC networking config using `macvlan` on interface `ens7`.
+	- Appends LXC networking config using configured `macvlan` defaults.
 	- Starts the container.
 	- Applies partial `server.properties` profile if present.
 	- Imports `.mcworld` archive if `-w` is provided.
@@ -229,8 +231,7 @@ Provision a new Bedrock LXC server from the template or resume an existing one, 
 - `bedrock-template` already exists.
 - `expand_pool.py` is executable.
 - `pool.txt` contains at least one reachable-free IP candidate.
-- The host network uses interface `ens7` and gateway `192.168.0.1`.
-- `ping` reachability is a valid enough free-IP heuristic for your network.
+- Network defaults are set correctly for your host (via `bedrock.conf` or env overrides).
 - `.mcworld` archive contains one world folder with `level.dat`.
 
 **Important Notes**
@@ -456,6 +457,25 @@ Expand IP patterns from `pool.txt` into a newline-delimited list of candidate IP
 
 - Input lines are IPv4-like and contain exactly four octets.
 - No validation is performed beyond octet count.
+
+### `allocate_ip.py`
+
+**Purpose**
+
+Choose a free IP from `pool.txt` expansion with a selectable strategy.
+
+**Usage**
+
+```bash
+./allocate_ip.py --pool-file ./pool.txt --servers-file ./servers.txt [--method inventory-safe|ping-probe]
+```
+
+**Behavior**
+
+- Reads currently assigned IPs from `servers.txt`.
+- Expands candidates via `expand_pool.py`.
+- `inventory-safe` (default): first candidate not already assigned.
+- `ping-probe`: first candidate not assigned and not reachable by ping.
 
 ## Operational Model
 
