@@ -59,6 +59,10 @@ def write_properties(path: Path, props: Dict[str, str]) -> None:
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def has_mcs_credentials(panel_url: str, api_key: str, daemon_id: str) -> bool:
+    return bool(panel_url and api_key and daemon_id)
+
+
 def api_request(base_url: str, method: str, route: str, api_key: str, query: Dict[str, Any], body: Any | None = None) -> Dict[str, Any]:
     query_pairs = {"apikey": api_key}
     query_pairs.update(query)
@@ -179,10 +183,6 @@ def main() -> int:
     parser.add_argument("--property", action="append", default=[], help="Add/update profile key=value (repeatable)")
     args = parser.parse_args()
 
-    if not args.panel_url or not args.api_key or not args.daemon_id:
-        print("panel-url, api-key, and daemon-id are required (or set MCSM_PANEL_URL/MCSM_API_KEY/MCSM_DAEMON_ID)", file=sys.stderr)
-        return 2
-
     try:
         profile_path: Optional[Path] = None
         profile_ref: Optional[str] = None
@@ -205,6 +205,13 @@ def main() -> int:
             encoding="utf-8",
         )
         print(f"UI schema refreshed: {schema_path}")
+
+        if not has_mcs_credentials(args.panel_url, args.api_key, args.daemon_id):
+            if profile_path is not None:
+                print("MCS credentials not set; skipped instance registration and applied local profile update only")
+                return 0
+            print("panel-url, api-key, and daemon-id are required (or set MCSM_PANEL_URL/MCSM_API_KEY/MCSM_DAEMON_ID)", file=sys.stderr)
+            return 2
 
         config = build_instance_config(args.name, REPO_DIR, profile_ref)
         existing_uuid = find_instance_by_name(args.panel_url, args.api_key, args.daemon_id, args.name)

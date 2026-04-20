@@ -60,6 +60,7 @@
 
     <script>
       window.$onMounted = function () {
+        const shellQuote = (value) => `'${String(value).replace(/'/g, `'"'"'`)}'`;
         const status = document.querySelector("#status");
         document.querySelector("#save").addEventListener("click", () => {
           const fields = [
@@ -82,10 +83,10 @@
           const props = [];
           for (const key of fields) {
             const value = document.querySelector(`#${key}`).value;
-            if (value !== "") props.push(`--property ${key}=${value}`);
+            if (value !== "") props.push(`--property ${shellQuote(`${key}=${value}`)}`);
           }
 
-          const cmd = `python3 /home/peter/minecraft/bedrock-cluster/mcs_register.py --name ${serverName} ${props.join(" ")}`;
+          const cmd = `python3 /home/peter/minecraft/bedrock-cluster/mcs_register.py --name ${shellQuote(serverName)} ${props.join(" ")}`;
           status.textContent = cmd;
         });
       };

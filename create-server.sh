@@ -106,6 +106,16 @@ import_world_if_requested() {
     --server-name "$container_name"
 }
 
+sync_mcs_ping_if_configured() {
+  local container_name="$1"
+  local servers_path="$SERVERS_FILE"
+
+  "$SCRIPT_DIR/mcs_sync_ping.py" \
+    --name "$container_name" \
+    --servers-file "$servers_path" \
+    --best-effort || true
+}
+
 vlog "Requested server name: $NAME"
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
@@ -144,6 +154,7 @@ if [ -n "$EXISTING_NAME" ]; then
   apply_profile_if_present "$EXISTING_NAME"
   import_world_if_requested "$EXISTING_NAME"
   ensure_bedrock_running "$EXISTING_NAME"
+  sync_mcs_ping_if_configured "$EXISTING_NAME"
   echo "Server $EXISTING_NAME is running at $EXISTING_IP:19132"
 
   attach_and_hold_for_mcs "$NAME"
@@ -219,6 +230,7 @@ ensure_bedrock_running "$NAME"
 vlog "Recording server mapping in $SERVERS_FILE"
 echo "$NAME $FREE_IP" >> "$SERVERS_FILE"
 vlog "Provisioning complete for $NAME"
+sync_mcs_ping_if_configured "$NAME"
 echo "Server $NAME running at $FREE_IP:19132"
 
 attach_and_hold_for_mcs "$NAME"

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import shlex
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -71,8 +72,8 @@ def schema_for_custom_card() -> List[Dict[str, Any]]:
 def _setter_command(python_bin: str, repo_dir: Path, name: str, key: str, value: str) -> str:
     register_script = repo_dir / "mcs_register.py"
     return (
-        f"{python_bin} {register_script} --name {name} "
-        f"--property {key}={value}"
+        f"{shlex.quote(python_bin)} {shlex.quote(str(register_script))} --name {shlex.quote(name)} "
+        f"--property {shlex.quote(f'{key}={value}')}"
     )
 
 

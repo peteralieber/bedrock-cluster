@@ -375,6 +375,7 @@ Python helper that upserts a wrapper-based MCS process instance.
 - Populates MCS action commands for key Bedrock settings (gamemode, difficulty, allow-cheats, allow-list).
 - Adds a destructive `Terminate Server (Destroy Container)` action command that calls `terminate-server.sh --force <name>`.
 - Refreshes per-server UI field schema JSON at `properties.d/<name>.ui.schema.json`.
+- Supports local-only profile updates when called with `--property` and no MCS API credentials.
 - Uses:
 	- `startCommand: /home/peter/minecraft/bedrock-cluster/create-server.sh ...`
 	- `stopCommand: /home/peter/minecraft/bedrock-cluster/destroy-server.sh ...`
@@ -394,7 +395,27 @@ Python helper that upserts a wrapper-based MCS process instance.
 **Important Caveats**
 
 - Requires MCS API credentials (`MCSM_PANEL_URL`, `MCSM_API_KEY`, `MCSM_DAEMON_ID`) unless supplied via flags.
+- If credentials are omitted and `--property` is provided, `mcs_register.py` updates local profile/schema only and skips remote instance updates.
 - Gameplay settings should be managed by partial `server.properties` profiles, not by changing LXC-level commands.
+
+### `mcs_sync_ping.py`
+
+**Purpose**
+
+Synchronize MCS ping target IP for an instance name using `servers.txt` inventory.
+
+**Usage**
+
+```bash
+./mcs_sync_ping.py --name <name> [--best-effort]
+```
+
+**Behavior**
+
+- Looks up `<name>` in `servers.txt` and extracts the assigned IP.
+- Finds matching MCS instance by nickname.
+- Updates MCS `pingConfig` to `<ip>:19132`.
+- In `--best-effort` mode, exits successfully when credentials or instance are missing.
 
 **Recommended Positioning**
 
