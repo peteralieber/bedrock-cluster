@@ -350,6 +350,41 @@ Intended to stop all tracked containers, copy updated Bedrock files from the tem
 - `update-servers.sh` now orchestrates per-server updates by calling `update-server.sh`.
 - Use `--dry-run` to preview changes before applying them.
 - Use `--verify` to assert that critical Bedrock binaries remain valid after sync.
+- Use `--snapshot` to create a pre-update backup archive via `backup-server.sh`.
+
+### `backup-server.sh`
+
+**Purpose**
+
+Create a compressed per-server backup archive of mutable Bedrock data.
+
+**Usage**
+
+```bash
+./backup-server.sh <name>
+```
+
+**Behavior**
+
+- Backs up mutable files from `/opt/bedrock` (including `server.properties` and `worlds`).
+- Writes archives under `.backups/<name>/` (or `BEDROCK_BACKUP_ROOT`).
+
+### `restore-server.sh`
+
+**Purpose**
+
+Restore mutable Bedrock data from a backup archive.
+
+**Usage**
+
+```bash
+./restore-server.sh <name> [backup-file]
+```
+
+**Behavior**
+
+- Uses the latest backup if no explicit archive is supplied.
+- Stops running container before restore and starts it again afterward.
 
 ### `mcs_register.py`
 

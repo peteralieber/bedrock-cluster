@@ -11,6 +11,7 @@ MOCK_BIN="$WORK_DIR/mockbin"
 TEST_SERVERS="$WORK_DIR/servers.txt"
 TEST_POOL="$WORK_DIR/pool.txt"
 TEST_LXC_ROOT="$WORK_DIR/lxc-root"
+TEST_BACKUP_ROOT="$WORK_DIR/backups"
 TARGET_SERVER="SafeHarnessServer"
 KEEP_SANDBOX="${SAFE_TEST_KEEP:-0}"
 
@@ -23,6 +24,7 @@ trap cleanup EXIT
 
 rm -rf "$WORK_DIR"
 mkdir -p "$MOCK_BIN" "$TEST_LXC_ROOT"
+mkdir -p "$TEST_BACKUP_ROOT"
 
 cp "$REPO_DIR/pool.txt" "$TEST_POOL"
 : > "$TEST_SERVERS"
@@ -209,6 +211,35 @@ echo "Running isolated update-server apply test..."
 PATH="$MOCK_BIN:$PATH" \
 BEDROCK_LXC_ROOT="$TEST_LXC_ROOT" \
 "$REPO_DIR/update-server.sh" --verify "$TARGET_SERVER"
+
+echo "Running isolated update-server snapshot test..."
+PATH="$MOCK_BIN:$PATH" \
+BEDROCK_LXC_ROOT="$TEST_LXC_ROOT" \
+BEDROCK_BACKUP_ROOT="$TEST_BACKUP_ROOT" \
+"$REPO_DIR/update-server.sh" --snapshot --verify "$TARGET_SERVER"
+
+if [[ -z "$(ls -1 "$TEST_BACKUP_ROOT/$TARGET_SERVER"/*.tgz 2>/dev/null || true)" ]]; then
+  echo "FAIL: snapshot backup archive not created"
+  exit 1
+fi
+
+echo "Running isolated explicit backup/restore test..."
+PATH="$MOCK_BIN:$PATH" \
+BEDROCK_LXC_ROOT="$TEST_LXC_ROOT" \
+BEDROCK_BACKUP_ROOT="$TEST_BACKUP_ROOT" \
+"$REPO_DIR/backup-server.sh" "$TARGET_SERVER" >/dev/null
+
+echo "allow-cheats=false" >> "$TARGET_PROPS"
+
+PATH="$MOCK_BIN:$PATH" \
+BEDROCK_LXC_ROOT="$TEST_LXC_ROOT" \
+BEDROCK_BACKUP_ROOT="$TEST_BACKUP_ROOT" \
+"$REPO_DIR/restore-server.sh" "$TARGET_SERVER" >/dev/null
+
+if ! grep -q '^allow-cheats=true$' "$TARGET_PROPS"; then
+  echo "FAIL: restore did not recover expected server.properties content"
+  exit 1
+fi
 
 echo "Running isolated update-servers batch dry-run test..."
 PATH="$MOCK_BIN:$PATH" \

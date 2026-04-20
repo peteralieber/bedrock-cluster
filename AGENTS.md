@@ -42,6 +42,8 @@ Agent rule:
 - `import_mcworld.py`: validates and imports `.mcworld` archives into container Bedrock world paths.
 - `mcs_register.py`: upserts MCS instance config to wrapper-based commands.
 - `mcs_sync_ping.py`: updates MCS instance pingConfig IP from `servers.txt` inventory mappings.
+- `backup-server.sh`: creates per-server backups of mutable Bedrock data.
+- `restore-server.sh`: restores per-server backups created by `backup-server.sh`.
 - `update-server.sh`: per-server template sync with dry-run and verify modes.
 - `update-servers.sh`: batch wrapper over `update-server.sh` for all tracked servers.
 

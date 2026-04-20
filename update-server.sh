@@ -6,9 +6,10 @@ LXC_ROOT="${BEDROCK_LXC_ROOT:-/var/lib/lxc}"
 TEMPLATE="${BEDROCK_TEMPLATE_NAME:-bedrock-template}"
 DRY_RUN=0
 VERIFY=0
+SNAPSHOT=0
 
 usage() {
-  echo "Usage: ./update-server.sh [--dry-run] [--verify] <server-name>"
+  echo "Usage: ./update-server.sh [--dry-run] [--verify] [--snapshot] <server-name>"
 }
 
 while [[ $# -gt 0 ]]; do
@@ -19,6 +20,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --verify)
       VERIFY=1
+      shift
+      ;;
+    --snapshot)
+      SNAPSHOT=1
       shift
       ;;
     -h|--help)
@@ -92,12 +97,28 @@ if [[ "$DRY_RUN" != "1" && "$WAS_RUNNING" == "1" ]]; then
   lxc-stop -n "$NAME"
 fi
 
+if [[ "$DRY_RUN" != "1" && "$SNAPSHOT" == "1" ]]; then
+  echo "Creating pre-update snapshot for $NAME"
+  SNAPSHOT_PATH="$($SCRIPT_DIR/backup-server.sh "$NAME")"
+  echo "Snapshot saved: $SNAPSHOT_PATH"
+fi
+
 echo "Syncing template files into $NAME"
 rsync "${RSYNC_ARGS[@]}" "$SRC_DIR/" "$DST_DIR/"
 
 if [[ "$VERIFY" == "1" && "$DRY_RUN" != "1" ]]; then
   if [[ ! -x "$DST_DIR/bedrock_server" ]]; then
     echo "Verification failed: $DST_DIR/bedrock_server is missing or not executable"
+    exit 1
+  fi
+  if [[ ! -f "$DST_DIR/version.txt" ]]; then
+    echo "Verification failed: $DST_DIR/version.txt is missing"
+    exit 1
+  fi
+  src_hash="$(sha256sum "$SRC_DIR/bedrock_server" | awk '{print $1}')"
+  dst_hash="$(sha256sum "$DST_DIR/bedrock_server" | awk '{print $1}')"
+  if [[ "$src_hash" != "$dst_hash" ]]; then
+    echo "Verification failed: bedrock_server checksum mismatch"
     exit 1
   fi
   echo "Verification passed for $NAME"
