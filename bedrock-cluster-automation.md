@@ -310,6 +310,25 @@ Pretty-print the current `servers.txt` inventory.
 - Must be run from the repository root, because it references `servers.txt` with a relative path.
 - Requires the `column` utility.
 
+### `health-check.sh`
+
+**Purpose**
+
+Report health of tracked servers using inventory, container state, and Bedrock tmux session checks.
+
+**Usage**
+
+```bash
+./health-check.sh [--name <server>]
+```
+
+**Behavior**
+
+- Reads servers from `servers.txt`.
+- Checks each container state (`RUNNING`/`STOPPED`/`MISSING`).
+- For running containers, checks for Bedrock tmux session `mc`.
+- Returns non-zero when any issue is detected.
+
 ### `update-servers.sh`
 
 **Purpose**

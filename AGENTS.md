@@ -46,6 +46,7 @@ Agent rule:
 - `restore-server.sh`: restores per-server backups created by `backup-server.sh`.
 - `update-server.sh`: per-server template sync with dry-run and verify modes.
 - `update-servers.sh`: batch wrapper over `update-server.sh` for all tracked servers.
+- `health-check.sh`: reports container and Bedrock session status for tracked servers.
 
 ## Implementation Policy (Python vs Bash)
 Use Bash when work is primarily:

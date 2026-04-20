@@ -181,6 +181,12 @@ BEDROCK_LXC_ROOT="$TEST_LXC_ROOT" \
 MCSM_NO_BLOCK=1 \
 "$REPO_DIR/create-server.sh" -w "$WORK_DIR/sample.mcworld" "$TARGET_SERVER"
 
+echo "Running isolated health-check test..."
+PATH="$MOCK_BIN:$PATH" \
+BEDROCK_SERVERS_FILE="$TEST_SERVERS" \
+BEDROCK_LXC_ROOT="$TEST_LXC_ROOT" \
+"$REPO_DIR/health-check.sh" --name "$TARGET_SERVER"
+
 if ! grep -q "^${TARGET_SERVER} " "$TEST_SERVERS"; then
   echo "FAIL: sandbox servers file was not updated"
   exit 1
