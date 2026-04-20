@@ -38,6 +38,7 @@ Agent rule:
 - `terminate-server.sh`: destructive termination that removes container and inventory mapping.
 - `expand_pool.py`: expands wildcard/range pool entries into concrete IPs.
 - `allocate_ip.py`: allocates free IPs from pool expansion using inventory-safe or ping-probe strategy.
+- `manage_inventory.py`: performs atomic add/remove updates for `servers.txt` mappings.
 - `apply_server_properties.py`: validates and applies partial `server.properties` profiles.
 - `import_mcworld.py`: validates and imports `.mcworld` archives into container Bedrock world paths.
 - `mcs_register.py`: upserts MCS instance config to wrapper-based commands.

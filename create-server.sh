@@ -234,7 +234,7 @@ vlog "Launching Bedrock server in tmux session inside container"
 ensure_bedrock_running "$NAME"
 
 vlog "Recording server mapping in $SERVERS_FILE"
-echo "$NAME $FREE_IP" >> "$SERVERS_FILE"
+"$SCRIPT_DIR/manage_inventory.py" --servers-file "$SERVERS_FILE" add --name "$NAME" --ip "$FREE_IP" >/dev/null
 vlog "Provisioning complete for $NAME"
 sync_mcs_ping_if_configured "$NAME"
 echo "Server $NAME running at $FREE_IP:19132"

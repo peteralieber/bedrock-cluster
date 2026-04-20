@@ -75,11 +75,7 @@ else
   echo "[MCSM] Container $NAME not found; continuing inventory cleanup"
 fi
 
-tmp_file="$(mktemp "${SERVERS_FILE}.tmp.XXXXXX")"
-trap 'rm -f "$tmp_file"' EXIT
-awk -v target="$NAME" '$1 != target { print }' "$SERVERS_FILE" > "$tmp_file"
-mv "$tmp_file" "$SERVERS_FILE"
-trap - EXIT
+"$SCRIPT_DIR/manage_inventory.py" --servers-file "$SERVERS_FILE" remove --name "$NAME" >/dev/null
 
 if [[ -n "$existing_ip" ]]; then
   echo "[MCSM] Removed inventory entry for $NAME ($existing_ip); IP returned to pool"

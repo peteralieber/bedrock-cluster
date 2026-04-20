@@ -531,6 +531,25 @@ Choose a free IP from `pool.txt` expansion with a selectable strategy.
 - `inventory-safe` (default): first candidate not already assigned.
 - `ping-probe`: first candidate not assigned and not reachable by ping.
 
+### `manage_inventory.py`
+
+**Purpose**
+
+Apply atomic add/remove updates to `servers.txt` mappings with file locking.
+
+**Usage**
+
+```bash
+./manage_inventory.py --servers-file ./servers.txt add --name <name> --ip <ip>
+./manage_inventory.py --servers-file ./servers.txt remove --name <name>
+```
+
+**Behavior**
+
+- Uses an exclusive lock file during updates.
+- Writes through a temporary file and atomically replaces the target.
+- Prevents partial or interleaved inventory writes under concurrent operations.
+
 ## Operational Model
 
 ### Why tmux Is Used
