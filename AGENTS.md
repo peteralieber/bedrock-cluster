@@ -37,7 +37,7 @@ Agent rule:
 - `destroy-server.sh`: graceful stop, non-destructive container shutdown.
 - `terminate-server.sh`: destructive termination that removes container and inventory mapping.
 - `expand_pool.py`: expands wildcard/range pool entries into concrete IPs.
-- `allocate_ip.py`: allocates free IPs from pool expansion using inventory-safe or ping-probe strategy.
+- `allocate_ip.py`: allocates free IPs from pool expansion using inventory-safe strategy.
 - `manage_inventory.py`: performs atomic add/remove updates for `servers.txt` mappings.
 - `apply_server_properties.py`: validates and applies partial `server.properties` profiles.
 - `import_mcworld.py`: validates and imports `.mcworld` archives into container Bedrock world paths.
@@ -48,6 +48,7 @@ Agent rule:
 - `update-server.sh`: per-server template sync with dry-run and verify modes.
 - `update-servers.sh`: batch wrapper over `update-server.sh` for all tracked servers.
 - `health-check.sh`: reports container and Bedrock session status for tracked servers.
+- `render_mcs_template.py`: renders per-instance JSON from `mcs_template_bedrock_process.json` placeholders.
 
 ## Implementation Policy (Python vs Bash)
 Use Bash when work is primarily:

@@ -187,7 +187,7 @@ Provision a new Bedrock LXC server from the template or resume an existing one, 
 - Resolves `servers.txt` and `pool.txt` relative to the script directory.
 - Loads optional host defaults from `bedrock.conf` (or `BEDROCK_CONFIG_FILE`).
 - Supports configurable network values (`BEDROCK_NET_INTERFACE`, `BEDROCK_NET_PREFIX`, `BEDROCK_NET_GATEWAY`).
-- Uses `allocate_ip.py` with strategy `BEDROCK_IP_ALLOCATION_METHOD` (`inventory-safe` default).
+- Uses `allocate_ip.py` in inventory-safe mode.
 - Resolves default profile path as `properties.d/<name>.server.properties` if `-p` is not provided.
 - If `<name>` already exists in `servers.txt`:
 	- Ensures the container exists.
@@ -521,15 +521,14 @@ Choose a free IP from `pool.txt` expansion with a selectable strategy.
 **Usage**
 
 ```bash
-./allocate_ip.py --pool-file ./pool.txt --servers-file ./servers.txt [--method inventory-safe|ping-probe]
+./allocate_ip.py --pool-file ./pool.txt --servers-file ./servers.txt
 ```
 
 **Behavior**
 
 - Reads currently assigned IPs from `servers.txt`.
 - Expands candidates via `expand_pool.py`.
-- `inventory-safe` (default): first candidate not already assigned.
-- `ping-probe`: first candidate not assigned and not reachable by ping.
+- Returns the first candidate from `pool.txt` expansion that is not already assigned in `servers.txt`.
 
 ### `manage_inventory.py`
 
@@ -672,9 +671,15 @@ The repository now includes `mcs_template_bedrock_process.json` as a reusable ba
 
 How to use it:
 
-1. Copy the JSON into your MCS instance creation/import flow.
-2. Replace `{{SERVER_NAME}}` with the desired instance name.
+1. Render a per-instance JSON with `render_mcs_template.py`.
+2. Import/use the rendered JSON in your MCS instance creation flow.
 3. Optionally run `mcs_register.py --name <name>` afterward to refresh generated action commands and schema.
+
+Example:
+
+```bash
+./render_mcs_template.py --name MyWorld
+```
 
 ## Known Risks and Caveats
 

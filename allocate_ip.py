@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Allocate an IP for a server from expanded pool values."""
+"""Allocate an IP for a server from expanded pool values.
+
+Allocation is inventory-driven only:
+- candidates come from pool expansion;
+- in-use IPs come from servers.txt mappings.
+"""
 
 from __future__ import annotations
 
@@ -37,28 +42,9 @@ def expand_pool(pool_file: Path, repo_dir: Path) -> list[str]:
     return [line.strip() for line in result.stdout.splitlines() if line.strip()]
 
 
-def is_ping_free(ip: str) -> bool:
-    probe = subprocess.run(
-        ["ping", "-c1", "-W1", ip],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        check=False,
-    )
-    return probe.returncode != 0
-
-
 def allocate_inventory_safe(pool: list[str], used_ips: set[str]) -> str | None:
     for ip in pool:
         if ip not in used_ips:
-            return ip
-    return None
-
-
-def allocate_ping_probe(pool: list[str], used_ips: set[str]) -> str | None:
-    for ip in pool:
-        if ip in used_ips:
-            continue
-        if is_ping_free(ip):
             return ip
     return None
 
@@ -67,12 +53,6 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Allocate an unused IP from pool")
     parser.add_argument("--pool-file", required=True, help="Path to pool.txt")
     parser.add_argument("--servers-file", required=True, help="Path to servers.txt")
-    parser.add_argument(
-        "--method",
-        default="inventory-safe",
-        choices=["inventory-safe", "ping-probe"],
-        help="IP allocation method",
-    )
     return parser.parse_args()
 
 
@@ -85,10 +65,7 @@ def main() -> int:
     pool = expand_pool(pool_file, repo_dir)
     used_ips = parse_servers_ips(servers_file)
 
-    if args.method == "inventory-safe":
-        selected = allocate_inventory_safe(pool, used_ips)
-    else:
-        selected = allocate_ping_probe(pool, used_ips)
+    selected = allocate_inventory_safe(pool, used_ips)
 
     if not selected:
         print("No free IPs available", file=sys.stderr)
